@@ -239,17 +239,7 @@ namespace PolaScript
 					}
 					else if (isVarName(tmp))	//変数
 					{
-						if (ix + 1 < token.Length && token[ix+1] == "(")
-						{
-							pnode = new ExpressionNode("method");
-							while (++ix < token.Length && token[ix] != ")")
-							{
-								
-							}
-						}
-						else
-							pnode = new PolaObjectNode(Types.Variable, tmp);
-						
+						pnode = new PolaObjectNode(Types.Variable, tmp);
 					}
 					else if (tmp[0] == '"' && tmp[tmp.Length - 1] == '"' && tmp.Length > 1)	//文字列
 					{
