@@ -21,13 +21,39 @@ namespace PolaScript
 				/// ノードの子要素です。
 				/// </summary>
 				public List<INode> childs { get; set; }
-				
+
+				public void AddChild(INode pchild)
+				{
+					//if (pnode.name == "=" || pnode.name == "+=" || pnode.name == "-=" || pnode.name == "*=" || pnode.name == "/=" || pnode.name == "&=" || pnode.name == "|=" || pnode.name == "^=")
+					//	pnode.childs.Insert(0, pchild);
+					//else
+					this.childs.Add(pchild);
+				}
+
+
+				public void AddTwoChildren(INode pchild1, INode pchild2)
+				{
+					AddChild(pchild1);
+					AddChild(pchild2);
+				}
 			}
 
 
 			public interface IStatementNode
 			{
 				
+			}
+
+			public class MethodCallNode : INode
+			{
+				public string name { get; set; }
+
+				public MethodCallNode(string name)
+				{
+					this.name = name;
+					this.childs = new List<INode>();
+				}
+
 			}
 
 			public class DeclerationNode : IStatementNode
@@ -53,20 +79,7 @@ namespace PolaScript
 					name = opname;
 				}
 
-				public void AddChild(INode pchild)
-				{
-					//if (pnode.name == "=" || pnode.name == "+=" || pnode.name == "-=" || pnode.name == "*=" || pnode.name == "/=" || pnode.name == "&=" || pnode.name == "|=" || pnode.name == "^=")
-					//	pnode.childs.Insert(0, pchild);
-					//else
-					this.childs.Add(pchild);
-				}
-
-
-				public void AddTwoChildren(INode pchild1, INode pchild2)
-				{
-					AddChild(pchild1);
-					AddChild(pchild2);
-				}
+				
 
 			}
 

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using PolaScript.Parsing.Nodes;
+using PolaScript.Parsing;
 using PolaScript.Object;
 
 namespace PolaScript
@@ -16,12 +17,19 @@ namespace PolaScript
 
 			INode rootnode;
 
+			public Interpreter(Parser parser)
+			{
+				rootnode = parser.RootNode;
+			}
+
 			public Interpreter(INode node)
 			{
 				rootnode = node;
+			}
 
-				Calc(node);
-
+			public PolaObject Run()
+			{
+				return Calc(this.rootnode);
 			}
 
 			PolaObject Calc(INode arg)
@@ -30,6 +38,10 @@ namespace PolaScript
 
 				if (arg is PolaObjectNode)
 					return ((PolaObjectNode)arg).constant;
+				else if (arg is MethodCallNode)
+				{
+					return new PolaObject(Types.String, "メソッド呼び出しは実装中 ");
+				}
 
 				ExpressionNode pnode = (ExpressionNode)arg;
 
@@ -205,6 +217,8 @@ namespace PolaScript
 							else
 								return new PolaObject(Types.Number, 0);
 						}
+						else if (pnode.name == ";")
+							return p1;
 						break;
 					default:
 						throw new Exception(string.Format("{0}つの項をとる演算子はありません。", pnode.childs.Count));

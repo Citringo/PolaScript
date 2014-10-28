@@ -17,7 +17,7 @@ namespace PolaScript
 
 			int ix = 0;
 
-			INode RootNode;
+			public INode RootNode = null;
 
 			public Parser(string code)
 			{
@@ -57,6 +57,10 @@ namespace PolaScript
 							break;
 					}
 				}
+				else if (node is MethodCallNode)
+				{
+					lastdata.AppendFormat(" (method name=\"{0}\" ", ((MethodCallNode)node).name);					
+				}
 				for (int n = 0; n < node.childs.Count; n++)
 				{
 					INode pchild = node.childs[n];
@@ -78,7 +82,7 @@ namespace PolaScript
 				INode expr = SetStatement();
 				Console.Write(GetAST(expr));
 				Console.WriteLine();
-				
+				this.RootNode = expr;
 			}
 
 			INode SetStatement()
@@ -88,11 +92,12 @@ namespace PolaScript
 				while(ix < token.Length && token[ix] != ";")
 				{
 					INode child = SetAssignment();
+					
 					mainnode.AddChild(child);
 					ix++;
 				}
 				Console.WriteLine("ix: " + ix);
-				if (ix >= token.Length && token[token.Length - 1] != ";")
+				if (ix > token.Length && token[token.Length - 1] != ";")
 					throw new ParseException("; が必要です。");
 				
 				return mainnode;
@@ -105,7 +110,9 @@ namespace PolaScript
 				while (ix < token.Length && (token[ix] == "=" || token[ix] == "+=" || token[ix] == "-=" || token[ix] == "*=" || token[ix] == "/=" || token[ix] == "&=" || token[ix] == "|=" || token[ix] == "^="))
 				{
 					ExpressionNode pnode = new ExpressionNode(token[ix++]);
+					
 					INode pright = SetAssignment();
+					Console.WriteLine(pnode.name);
 					pnode.AddTwoChildren(pleft, pright);
 					pleft = pnode;
 				}
@@ -118,6 +125,7 @@ namespace PolaScript
 				while (ix < token.Length && (token[ix] == "<" || token[ix] == ">" || token[ix] == "==" || token[ix] == "!=" || token[ix] == "<=" || token[ix] == ">="))
 				{
 					ExpressionNode pnode = new ExpressionNode(token[ix++]);
+					Console.WriteLine(pnode.name);
 					INode pright = SetShift();
 					pnode.AddTwoChildren(pleft, pright);
 					pleft = pnode;
@@ -132,6 +140,7 @@ namespace PolaScript
 				while (ix < token.Length && (token[ix] == "&" || token[ix] == "|" || token[ix] == "^"))
 				{
 					ExpressionNode pnode = new ExpressionNode(token[ix++]);
+					Console.WriteLine(pnode.name);
 					INode pright = SetLogic();
 					pnode.AddTwoChildren(pleft, pright);
 					pleft = pnode;
@@ -145,6 +154,7 @@ namespace PolaScript
 				while (ix < token.Length && (token[ix] == "<<" || token[ix] == ">>"))
 				{
 					ExpressionNode pnode = new ExpressionNode(token[ix++]);
+					Console.WriteLine(pnode.name);
 					INode pright = SetAddSub();
 					pnode.AddTwoChildren(pleft, pright);
 					pleft = pnode;
@@ -158,6 +168,7 @@ namespace PolaScript
 				while (ix < token.Length && (token[ix] == "+" || token[ix] == "-"))
 				{
 					ExpressionNode pnode = new ExpressionNode(token[ix++]);
+					Console.WriteLine(pnode.name);
 					INode pright = SetMulDiv();
 					pnode.AddTwoChildren(pleft, pright);
 					pleft = pnode;
@@ -171,6 +182,7 @@ namespace PolaScript
 				while (ix < token.Length && (token[ix] == "*" || token[ix] == "/" || token[ix] == "%"))
 				{
 					ExpressionNode pnode = new ExpressionNode(token[ix++]);
+					Console.WriteLine(pnode.name);
 					INode pright = SetFactor();
 					pnode.AddTwoChildren(pleft, pright);
 					pleft = pnode;
@@ -194,6 +206,7 @@ namespace PolaScript
 				{
 					pnode = new ExpressionNode(token[ix++]);
 					INode pright = SetAssignment();
+					Console.WriteLine(((ExpressionNode)pnode).name);
 					((ExpressionNode)pnode).AddChild(pright);
 				}
 				else if (token[ix] == "num" || token[ix] == "string" || token[ix] == "bool" || token[ix] == "Number" || token[ix] == "String" || token[ix] == "Boolean")
@@ -226,31 +239,20 @@ namespace PolaScript
 					pnode = new ExpressionNode("let");
 					ix++;
 					INode pright = SetFactor();
-
+					Console.WriteLine(((PolaObjectNode)pleft).constant.value);
 					((ExpressionNode)pnode).AddTwoChildren(pleft, pright);
 					pright = pnode;
 				}
 				else
 				{
 					string tmp = token[ix++];
+
+
 					if (isNumber(tmp))	//数値
 					{
 						pnode = new PolaObjectNode(Types.Number, double.Parse(tmp));
 					}
-					else if (isVarName(tmp))	//変数
-					{
-						if (ix + 1 < token.Length && token[ix+1] == "(")
-						{
-							pnode = new ExpressionNode("method");
-							while (++ix < token.Length && token[ix] != ")")
-							{
-								
-							}
-						}
-						else
-							pnode = new PolaObjectNode(Types.Variable, tmp);
-						
-					}
+					
 					else if (tmp[0] == '"' && tmp[tmp.Length - 1] == '"' && tmp.Length > 1)	//文字列
 					{
 						pnode = new PolaObjectNode(Types.String, tmp.Substring(1, tmp.Length - 2).Replace("\\\"", "\"").Replace("\\\\","\\"));
@@ -259,12 +261,77 @@ namespace PolaScript
 					{
 						pnode = new PolaObjectNode(Types.Boolean, bool.Parse(tmp));
 					}
+					else if (isVarName(tmp))	//変数
+					{
+
+						if (ix < token.Length && token[ix] == "(")
+						{
+							ix++;
+							//INode pleft = new PolaObjectNode(Types.Variable, tmp);
+
+							if (ix < token.Length && token[ix] != ")")
+							{
+								INode pright = SetAssignment();
+								pnode = new MethodCallNode(tmp);
+								tmplist = new List<INode>();
+								GetArguments(pright.childs);
+								pnode.childs = tmplist;
+							}
+							else
+							{
+								
+								pnode = new MethodCallNode(tmp);
+							}
+							//((ExpressionNode)pnode).AddTwoChildren(pleft, pright);
+
+						}
+						else
+							pnode = new PolaObjectNode(Types.Variable, tmp);
+
+					}
 					else
 					{
 						throw new ParseException(tmp + " を理解できません。");
 					}
+
+					if (ix < token.Length && token[ix] == ",")
+					{
+						PolaObjectNode pn = new PolaObjectNode(((PolaObjectNode)pnode).constant.type, ((PolaObjectNode)pnode).constant.value);
+						pnode = new ExpressionNode(",");
+						ix++;
+						INode pright = SetAssignment();
+						((ExpressionNode)pnode).AddTwoChildren(pn, pright);
+
+						
+					}
+
 				}
 				return pnode;
+			}
+
+			List<INode> tmplist = null;
+
+			void GetArguments(List<INode> list)
+			{
+				foreach (INode node in list)
+				{
+					if (node is ExpressionNode && ((ExpressionNode)node).name == ",")
+					{
+						tmplist.Add(node.childs[0]);
+						if (node.childs[1] is ExpressionNode && ((ExpressionNode)node.childs[1]).name == ",")
+						{
+							GetArguments(node.childs[1].childs);
+						}
+						else
+						{
+							tmplist.Add(node.childs[1]);
+						}
+					}
+					else
+					{
+						tmplist.Add(node);
+					}
+				}
 			}
 
 			static bool isNumber(string val)
@@ -320,6 +387,7 @@ namespace PolaScript
 								 || chr == '<' || chr == '>' || chr == '='
 								 || chr == '&' || chr == '|' || chr == '^'
 								 || chr == '!' || chr == '~' || chr == ';'
+								 || chr == ','
 								)
 						{
 							nowtm = TokenMode.Operation;
