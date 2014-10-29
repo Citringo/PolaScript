@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using PolaScript.Object;
 
+
 namespace PolaScript
 {
 	namespace Parsing

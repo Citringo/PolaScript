@@ -28,8 +28,7 @@ namespace PolaClient
 					parser.Parse();
 
 					interpreter = new Interpreter(parser);
-					PolaObject pobj = interpreter.Run();
-					Console.WriteLine("{0} : {1}", pobj.value, pobj.type);
+					interpreter.Run();
 					
 				//}
 				//catch (Exception ex)

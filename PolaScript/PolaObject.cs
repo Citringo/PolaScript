@@ -75,7 +75,7 @@ namespace PolaScript
 
 		}
 
-
+		
 
 		/// <summary>
 		/// PolaObject の型を指定します。

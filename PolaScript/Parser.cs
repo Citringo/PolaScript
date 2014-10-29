@@ -17,11 +17,12 @@ namespace PolaScript
 
 			int ix = 0;
 
-			public INode RootNode = null;
+			public List<INode> Statements { get; set; }
 
 			public Parser(string code)
 			{
 				token = GetTokenByExpression(code);
+				Statements = new List<INode>();
 			}
 			
 			public string GetAST(INode node)
@@ -79,10 +80,14 @@ namespace PolaScript
 				Console.Write(" => ");
 
 				ix = 0;
-				INode expr = SetStatement();
-				Console.Write(GetAST(expr));
-				Console.WriteLine();
-				this.RootNode = expr;
+				while (ix < token.Length)
+				{
+					INode expr = SetStatement();
+					Console.Write(GetAST(expr));
+					Console.WriteLine();
+					this.Statements.Add(expr);
+				}
+				
 			}
 
 			INode SetStatement()
@@ -96,8 +101,10 @@ namespace PolaScript
 					mainnode.AddChild(child);
 					ix++;
 				}
-				Console.WriteLine("ix: " + ix);
-				if (ix > token.Length && token[token.Length - 1] != ";")
+
+				ix++;
+				//Console.WriteLine("ix: " + ix);
+				if (token[token.Length - 1] != ";")
 					throw new ParseException("; が必要です。");
 				
 				return mainnode;
@@ -112,7 +119,7 @@ namespace PolaScript
 					ExpressionNode pnode = new ExpressionNode(token[ix++]);
 					
 					INode pright = SetAssignment();
-					Console.WriteLine(pnode.name);
+				//	Console.WriteLine(pnode.name);
 					pnode.AddTwoChildren(pleft, pright);
 					pleft = pnode;
 				}
@@ -125,7 +132,7 @@ namespace PolaScript
 				while (ix < token.Length && (token[ix] == "<" || token[ix] == ">" || token[ix] == "==" || token[ix] == "!=" || token[ix] == "<=" || token[ix] == ">="))
 				{
 					ExpressionNode pnode = new ExpressionNode(token[ix++]);
-					Console.WriteLine(pnode.name);
+					//Console.WriteLine(pnode.name);
 					INode pright = SetShift();
 					pnode.AddTwoChildren(pleft, pright);
 					pleft = pnode;
@@ -140,7 +147,7 @@ namespace PolaScript
 				while (ix < token.Length && (token[ix] == "&" || token[ix] == "|" || token[ix] == "^"))
 				{
 					ExpressionNode pnode = new ExpressionNode(token[ix++]);
-					Console.WriteLine(pnode.name);
+				//	Console.WriteLine(pnode.name);
 					INode pright = SetLogic();
 					pnode.AddTwoChildren(pleft, pright);
 					pleft = pnode;
@@ -154,7 +161,7 @@ namespace PolaScript
 				while (ix < token.Length && (token[ix] == "<<" || token[ix] == ">>"))
 				{
 					ExpressionNode pnode = new ExpressionNode(token[ix++]);
-					Console.WriteLine(pnode.name);
+				//	Console.WriteLine(pnode.name);
 					INode pright = SetAddSub();
 					pnode.AddTwoChildren(pleft, pright);
 					pleft = pnode;
@@ -168,7 +175,7 @@ namespace PolaScript
 				while (ix < token.Length && (token[ix] == "+" || token[ix] == "-"))
 				{
 					ExpressionNode pnode = new ExpressionNode(token[ix++]);
-					Console.WriteLine(pnode.name);
+				//	Console.WriteLine(pnode.name);
 					INode pright = SetMulDiv();
 					pnode.AddTwoChildren(pleft, pright);
 					pleft = pnode;
@@ -182,7 +189,7 @@ namespace PolaScript
 				while (ix < token.Length && (token[ix] == "*" || token[ix] == "/" || token[ix] == "%"))
 				{
 					ExpressionNode pnode = new ExpressionNode(token[ix++]);
-					Console.WriteLine(pnode.name);
+				//	Console.WriteLine(pnode.name);
 					INode pright = SetFactor();
 					pnode.AddTwoChildren(pleft, pright);
 					pleft = pnode;
@@ -206,13 +213,14 @@ namespace PolaScript
 				{
 					pnode = new ExpressionNode(token[ix++]);
 					INode pright = SetAssignment();
-					Console.WriteLine(((ExpressionNode)pnode).name);
+				//	Console.WriteLine(((ExpressionNode)pnode).name);
 					((ExpressionNode)pnode).AddChild(pright);
 				}
 				else if (token[ix] == "num" || token[ix] == "string" || token[ix] == "bool" || token[ix] == "Number" || token[ix] == "String" || token[ix] == "Boolean")
 				{
 					INode pleft = null;
-					switch (token[ix])
+					
+					switch (token[ix++])
 					{
 						case "num":
 							pleft = new PolaObjectNode(Types.Type, Types.Number);
@@ -237,9 +245,9 @@ namespace PolaScript
 
 					}
 					pnode = new ExpressionNode("let");
-					ix++;
+					
 					INode pright = SetFactor();
-					Console.WriteLine(((PolaObjectNode)pleft).constant.value);
+					//Console.WriteLine(((PolaObjectNode)pleft).constant.value);
 					((ExpressionNode)pnode).AddTwoChildren(pleft, pright);
 					pright = pnode;
 				}
@@ -266,22 +274,31 @@ namespace PolaScript
 
 						if (ix < token.Length && token[ix] == "(")
 						{
-							ix++;
+							
 							//INode pleft = new PolaObjectNode(Types.Variable, tmp);
+							//ix++;
 
-							if (ix < token.Length && token[ix] != ")")
+							if (ix + 1 < token.Length && token[ix + 1] != ")")
 							{
+								//ix--;
+								//ix++;
 								INode pright = SetAssignment();
 								pnode = new MethodCallNode(tmp);
-								tmplist = new List<INode>();
-								GetArguments(pright.childs);
-								pnode.childs = tmplist;
+								List<INode> tmplist = new List<INode>();
+								if (!(pright is ExpressionNode && ((ExpressionNode)pright).name == ","))
+									pnode.childs.Add(pright);
+								else
+								{
+									GetArguments(pright.childs, ref tmplist);
+									pnode.childs = tmplist;
+								}
 							}
 							else
 							{
-								
 								pnode = new MethodCallNode(tmp);
+								ix++;
 							}
+
 							//((ExpressionNode)pnode).AddTwoChildren(pleft, pright);
 
 						}
@@ -311,7 +328,7 @@ namespace PolaScript
 
 			List<INode> tmplist = null;
 
-			void GetArguments(List<INode> list)
+			void GetArguments(List<INode> list, ref List<INode> tmplist)
 			{
 				foreach (INode node in list)
 				{
@@ -320,7 +337,7 @@ namespace PolaScript
 						tmplist.Add(node.childs[0]);
 						if (node.childs[1] is ExpressionNode && ((ExpressionNode)node.childs[1]).name == ",")
 						{
-							GetArguments(node.childs[1].childs);
+							GetArguments(node.childs[1].childs, ref tmplist);
 						}
 						else
 						{

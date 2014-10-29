@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using PolaScript.Parsing.Nodes;
+using System.Reflection;
 using PolaScript.Parsing;
 using PolaScript.Object;
 
@@ -15,21 +16,27 @@ namespace PolaScript
 		{
 			Dictionary<string, PolaObject> varlist = new Dictionary<string, PolaObject>();
 
-			INode rootnode;
+			List<INode> statements;
+
+			
 
 			public Interpreter(Parser parser)
 			{
-				rootnode = parser.RootNode;
+				statements = parser.Statements;
+				
 			}
 
-			public Interpreter(INode node)
+			public Interpreter(List<INode> node)
 			{
-				rootnode = node;
+				statements = node;
 			}
 
-			public PolaObject Run()
+			public void Run()
 			{
-				return Calc(this.rootnode);
+				foreach (INode node in statements)
+				{
+					Calc(node);
+				}
 			}
 
 			PolaObject Calc(INode arg)
@@ -40,7 +47,58 @@ namespace PolaScript
 					return ((PolaObjectNode)arg).constant;
 				else if (arg is MethodCallNode)
 				{
-					return new PolaObject(Types.String, "メソッド呼び出しは実装中 ");
+					MethodCallNode mcn = (MethodCallNode)arg;
+					object[] objects = new object[mcn.childs.Count];
+					Type[] types = new Type[mcn.childs.Count];
+					for (int i = 0; i < mcn.childs.Count; i++)
+					{
+						PolaObject pobj = Calc(mcn.childs[i]);
+						switch (pobj.type)
+						{
+							case Types.Number:
+								types[i] = typeof(double);
+								break;
+							case Types.String:
+								types[i] = typeof(string);
+								break;
+							case Types.Boolean:
+								types[i] = typeof(bool);
+								break;
+							default:
+								throw new Exception("メソッドのパラメーターに " + pobj.type + " を指定することはできません。");
+						}
+						objects[i] = pobj.value;
+					}
+
+					if (mcn.childs.Count == 0)
+						objects = null;
+					MethodInfo mi = typeof(PolaLibrary).GetMethod(mcn.name, types);
+					if (mi == null)
+						throw new Exception(mcn.name + "() メソッドはありません。");
+					PolaMethodAttribute pma = mi.GetCustomAttribute<PolaMethodAttribute>();
+					if (mi != null && pma != null)
+					{
+						object hoge = null;
+						try
+						{
+							hoge = mi.Invoke(null, objects);
+						}
+						catch (TargetInvocationException ex)
+						{
+							throw ex.InnerException;
+						}
+						switch (pma.ResultTypes)
+						{
+							case Types.Null:	//値を返さないメソッド
+								return new PolaObject(Types.Null, null);
+							default:
+								return new PolaObject(pma.ResultTypes, hoge);
+						}
+					}
+					else
+					{
+						throw new Exception(mcn.name + "() メソッドはありません。");
+					}
 				}
 
 				ExpressionNode pnode = (ExpressionNode)arg;
