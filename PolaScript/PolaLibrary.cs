@@ -28,6 +28,12 @@ namespace PolaScript
 				Console.WriteLine(msg);
 			}
 
+			//文字列出力と改行
+			[PolaMethod(Types.Null)]
+			public static void numprintln(double msg)
+			{
+				Console.WriteLine(msg);
+			}
 			//文字列入力
 			[PolaMethod(Types.String)]
 			public static string scanln(string prompt)
