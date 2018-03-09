@@ -18,6 +18,11 @@ namespace PolaScript
 
 			List<INode> statements;
 
+			public Dictionary<string, PolaObject> VarList
+			{
+				get => varlist;
+				set => varlist = value;
+			}
 			
 
 			public Interpreter(Parser parser)
@@ -63,6 +68,22 @@ namespace PolaScript
 								break;
 							case Types.Boolean:
 								types[i] = typeof(bool);
+								break;
+							case Types.Variable:
+								Console.WriteLine(pobj.value);
+								pobj = varlist[(string)pobj.value];
+								switch (pobj.type)
+								{
+									case Types.Number:
+										types[i] = typeof(double);
+										break;
+									case Types.String:
+										types[i] = typeof(string);
+										break;
+									case Types.Boolean:
+										types[i] = typeof(bool);
+										break;
+								}
 								break;
 							default:
 								throw new Exception("メソッドのパラメーターに " + pobj.type + " を指定することはできません。");

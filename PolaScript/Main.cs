@@ -17,6 +17,7 @@ namespace PolaClient
 		{
 			Parser parser;
 			Interpreter interpreter;
+			Dictionary<string, PolaObject> varl = null;
 			while (true)
 			{
 				string dat = Console.ReadLine();
@@ -26,10 +27,13 @@ namespace PolaClient
 				//{
 					parser = new Parser(dat);
 					parser.Parse();
-
-					interpreter = new Interpreter(parser);
-					interpreter.Run();
 					
+					interpreter = new Interpreter(parser);
+					if (varl != null)
+						interpreter.VarList = varl;
+					
+					interpreter.Run();
+					varl = interpreter.VarList;
 				//}
 				//catch (Exception ex)
 				/*{
